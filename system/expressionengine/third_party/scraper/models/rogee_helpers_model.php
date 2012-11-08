@@ -52,7 +52,7 @@ class Rogee_helpers_model extends CI_Model {
 	{
 	
 		$name = $param;
-		$param = $this->EE->TMPL->fetch_param($param);
+		$param = $this->EE->TMPL->fetch_param($name);
 	
 		if(!$param && $required)
 		{

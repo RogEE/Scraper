@@ -61,25 +61,125 @@ class Scraper {
 	private $S;
 
 	public $return_data;
+	
+	private $variable_prefix;
+	private $debug;
+	
+	private $url;
+	
+	private $selector;
+	private $limit;
     
 	/**
 	* ==============================================
 	* Constructor
 	* ==============================================
 	*
-	* @access  public
-	* @return  void
+	* @access public
+	* @return void
 	*
 	*/
 	public function __construct()
 	{
 	
+		// Get local EE instance
 		$this->EE =& get_instance();
 		
 		// Load the RogEE helpers model
 		$this->EE->load->model('rogee_helpers_model');
 		$this->H = $this->EE->rogee_helpers_model;
+		
+		// Defaults, initializations, params
+
+		$this->return_data = "";
+
+		$this->url = $this->H->param("url");
+		
+		$this->selector = $this->H->param("selector");
+		$this->limit = $this->H->param("limit", "100");
+		
+		$this->variable_prefix = $this->H->param("variable_prefix", "");
+		$this->debug = $this->H->param("debug", FALSE, TRUE);
 	
+	}
+
+
+	/**
+	* ==============================================
+	* parse_test()
+	* ==============================================
+	*
+	* Playing with parsing
+	*
+	* @access  public
+	* @return  void
+	*
+	*/
+	public function parse_test()
+	{
+	
+		return "parse_test";
+	
+	}
+
+	
+	
+	/**
+	* ==============================================
+	* sd_test()
+	* ==============================================
+	*
+	* Playing with SimpleHTMLDom stuff
+	*
+	* @access public
+	* @return string
+	*
+	*/
+	public function sd_test()
+	{	
+	
+		// Master Variables Array
+		$variables = array();
+		
+		if ($this->url !== FALSE && $this->selector !== FALSE)
+		{
+
+			// Create DOM from URL or file
+			$dom = file_get_html( $this->url );
+	
+			// Find the selected elements
+			if ($this->index !== FALSE)
+			{
+				$results = $dom->find( $this->selector, $this->index);
+			}
+			else
+			{
+				$results = $dom->find( $this->selector );
+			}
+			
+			// Find all images 
+			foreach($results as $element)
+			{
+				
+				$result_row = array(
+					$this->variable_prefix.'tag' => $element->tag,
+					$this->variable_prefix.'outertext' => $element->outertext,
+					$this->variable_prefix.'innertext' => $element->innertext,
+					$this->variable_prefix.'plaintext' => $element->plaintext
+					);
+				
+				$variables[] = $result_row;
+				
+			}
+	
+			$this->return_data .= $element->src . '<br>';
+	
+			// clean up memory
+			$dom->clear();
+			unset($dom);
+			
+		}
+		
 	}
 	
 	
