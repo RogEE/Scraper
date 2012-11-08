@@ -73,6 +73,28 @@ class Rogee_helpers_model extends CI_Model {
 		return $param;
 		
 	} // END param()
+	
+
+	/**
+	* ==============================================
+	* debug()
+	* ==============================================
+	*
+	* Publishes a debugging message via appropriate/available means
+	*
+	* @access public
+	* @param sring: The message
+	* @return void
+	*
+	*/
+	public function debug($message, $severity = 1, $notify = FALSE, Array $emails = array(), $extended_data = '')
+	{
+	
+		$this->EE->TMPL->log_item($message);
+	
+		return $message;
+		
+	} // END param()
 
 
 }
