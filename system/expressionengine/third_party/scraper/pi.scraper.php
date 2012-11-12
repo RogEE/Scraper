@@ -98,21 +98,22 @@ class Scraper {
 
 		$this->return_data = "";
 
-		$this->_url = $this->H->param("url", FALSE);
+		$this->_url = $this->H->param("url");
 		
-		$this->_selector = $this->H->param("selector", FALSE);
-		$this->_index = $this->H->param("index", FALSE);
-		$this->_limit = $this->H->param("limit", "100");
+		$this->_url = $this->H->param("selector");
+		$this->_index = $this->H->param("index");
+		$this->_limit = intval($this->H->param("limit",100));
 		
-		$this->_prefix = $this->H->param("variable_prefix", FALSE);
+		// I support a wide range of prefix params, in case you're in the habit of using another addon's param names.
+		($this->_prefix = $this->H->param("variable_prefix")) || ($this->_prefix = $this->H->param("var_prefix")) || ($this->_prefix = $this->H->param("prefix", ""));
 		
 		$this->_debug = $this->H->param("debug", FALSE, TRUE);
 		
-		// $this->return_data = $this->fetch();
+		$this->return_data = $this->fetch();
 
 
 
-
+/*
 		// Master Variables Array
 		$variables = array();
 		
@@ -169,7 +170,7 @@ class Scraper {
 		// $this->return_data = "<pre>".print_r($variables, TRUE)."</pre>";
 
 
-
+*/
 
 	
 	}
@@ -191,6 +192,8 @@ class Scraper {
 		return "<div><pre>".print_r($this->_url, TRUE)."||".print_r($_this->_index, TRUE)."</pre></div>";
 		
 		return "1";
+		
+		/*
 		if ($this->_url != FALSE && $this->_selector != FALSE)
 		{
 
@@ -245,44 +248,72 @@ class Scraper {
 		{
 			return "nope.";
 		}
+		*/
 	
 	}
-
-
+	
+	
 	/**
 	* ==============================================
-	* parse_test()
+	* param_test()
 	* ==============================================
 	*
-	* Playing with parsing
+	* Experimenting with setting parameters
 	*
 	* @access public
 	* @return string
 	*
 	*/
-	public function parse_test()
+	public function param_test()
 	{	
 	
 		$return_data = "";
 		
-		$return_data .= "<hr><h1>Single Vars</h1><pre>".print_r($this->EE->TMPL->var_single, TRUE)."</pre>";
-		$return_data .= "<hr><h1>Pair Vars</h1><pre>".print_r($this->EE->TMPL->var_pair, TRUE)."</pre>";
-		$return_data .= "<hr><h1>Tag Data</h1><pre>".print_r($this->EE->TMPL->tagdata, TRUE)."</pre>";		
-	
-		$pattern = '#{'.$this->_prefix.'children(?>(?:[^{]++|{(?!\/?'.$this->_prefix.'children[^}]*}))+|(?R))*{\/'.$this->_prefix.'children#si';
-		$pattern = '#{children(?>(?:[^{]++|{(?!\/?children[^}]*}))+|(?R))*{\/children#si';
+		$return_data .= "<hr><h1>URL</h1>";
+		$return_data .= "<pre>CONST: ".print_r($this->_url, TRUE)."</pre>";
+		$return_data .= "<pre>ASSIGNMENT: ".($this->_url = $this->H->param("url"))."</pre>";
+		$return_data .= "<pre>ASSIGNED: ".print_r($this->_url, TRUE)."</pre>";
+		$return_data .= "<pre>IZ FALSE: ".($this->_url === FALSE)."</pre>";
+		$return_data .= "<pre>IZ TRUE: ".($this->_url === TRUE)."</pre>";
+
+		$return_data .= "<hr><h1>SELECTOR</h1>";
+		$return_data .= "<pre>CONST: ".print_r($this->_selector, TRUE)."</pre>";
+		$return_data .= "<pre>ASSIGNMENT: ".($this->_url = $this->H->param("selector"))."</pre>";
+		$return_data .= "<pre>ASSIGNED: ".print_r($this->_selector, TRUE)."</pre>";
+		$return_data .= "<pre>IZ FALSE: ".($this->_selector === FALSE)."</pre>";
+		$return_data .= "<pre>IZ TRUE: ".($this->_selector === TRUE)."</pre>";
 		
-		$tagdata = $this->EE->TMPL->tagdata;
-		$tagdata = preg_replace_callback($pattern, array(get_class($this), '_placeholders'), $tagdata);
-	
-		$return_data .= "<hr><h1>New Tag Data</h1><pre>".print_r($tagdata, TRUE)."</pre>";
-	
-		$return_data .= "<hr><h1>_ph</h1><pre>".print_r($this->_ph, TRUE)."</pre>";		
-	
+		$return_data .= "<hr><h1>INDEX</h1>";
+		$return_data .= "<pre>CONST: ".print_r($this->_index, TRUE)."</pre>";
+		$return_data .= "<pre>ASSIGNMENT: ".($this->_index = $this->H->param("index"))."</pre>";
+		$return_data .= "<pre>ASSIGNED: ".print_r($this->_index, TRUE)."</pre>";
+		$return_data .= "<pre>IZ FALSE: ".($this->_index === FALSE)."</pre>";
+		$return_data .= "<pre>IZ TRUE: ".($this->_index === TRUE)."</pre>";
+		
+		$return_data .= "<hr><h1>LIMIT</h1>";
+		$return_data .= "<pre>CONST: ".print_r($this->_limit, TRUE)."</pre>";
+		$return_data .= "<pre>ASSIGNMENT: ".($this->_limit = intval($this->H->param("limit",100)))."</pre>";
+		$return_data .= "<pre>ASSIGNED: ".print_r($this->_limit, TRUE)."</pre>";
+		$return_data .= "<pre>IZ FALSE: ".($this->_limit === FALSE)."</pre>";
+		$return_data .= "<pre>IZ TRUE: ".($this->_limit === TRUE)."</pre>";
+
+		$return_data .= "<hr><h1>VAR PREFIX</h1>";
+		$return_data .= "<pre>CONST: ".print_r($this->_prefix, TRUE)."</pre>";
+		($this->_prefix = $this->H->param("variable_prefix")) || ($this->_prefix = $this->H->param("var_prefix")) || ($this->_prefix = $this->H->param("prefix", ""));
+		$return_data .= "<pre>ASSIGNED: ".print_r($this->_prefix, TRUE)."</pre>";
+		$return_data .= "<pre>IZ FALSE: ".($this->_prefix === FALSE)."</pre>";
+		$return_data .= "<pre>IZ TRUE: ".($this->_prefix === TRUE)."</pre>";
+		
+		$return_data .= "<hr><h1>DEBUG</h1>";
+		$return_data .= "<pre>CONST: ".print_r($this->_debug, TRUE)."</pre>";
+		$return_data .= "<pre>ASSIGNMENT: ".($this->_debug = $this->H->param("debug", FALSE, TRUE))."</pre>";
+		$return_data .= "<pre>ASSIGNED: ".print_r($this->_debug, TRUE)."</pre>";
+		$return_data .= "<pre>IZ FALSE: ".($this->_debug === FALSE)."</pre>";
+		$return_data .= "<pre>IZ TRUE: ".($this->_debug === TRUE)."</pre>";
+		
 		return $return_data;
 		
 	}
-	
 	
 	/**
 	* ==============================================
@@ -301,54 +332,37 @@ class Scraper {
 		// Master Variables Array
 		$variables = array();
 		
-		$this->_url = "http://michaelrog.com";
-		$this->_selector = "p";
-		$this->_index = -1;
-		
-		if ($this->_url !== FALSE && $this->_selector !== FALSE)
-		{
+		$url = "http://michaelrog.com";
+		$selector = "a";
+		$index = -1;
 
-			// Create DOM from URL or file
-			$dom = file_get_html( $this->_url );
-	
-			// Find the selected elements
-			if ($this->_index !== FALSE)
-			{
-				// $results = $dom->find( $this->_selector, $this->_index);
-				// return $this->_index;
-			}
-			else
-			{
-				// $results = $dom->find( $this->_selector );
-				// return "nope";
-			}
+		// Create DOM from URL or file
+		$dom = file_get_html( $url );
+		
+		$results = $dom->find($selector, $index);
+		
+		// Find all images 
+		foreach($results as $element)
+		{
 			
-			$results = $dom->find( "p", 1);
+			$result_row = array(
+				$this->variable_prefix.'tag' => $element->tag,
+				$this->variable_prefix.'outertext' => $element->outertext,
+				$this->variable_prefix.'innertext' => $element->innertext,
+				$this->variable_prefix.'plaintext' => $element->plaintext
+				);
 			
-			// Find all images 
-			foreach($results as $element)
-			{
-				
-				$result_row = array(
-					$this->variable_prefix.'tag' => $element->tag,
-					$this->variable_prefix.'outertext' => $element->outertext,
-					$this->variable_prefix.'innertext' => $element->innertext,
-					$this->variable_prefix.'plaintext' => $element->plaintext
-					);
-				
-				$variables[] = $result_row;
-				
-				// return $element->plaintext . '<br>';
-				
-			}
-	
-			// clean up memory
-			$dom->clear();
-			unset($dom);
+			$variables[] = $result_row;
 			
-			return "<pre>".print_r($variables, TRUE)."</pre>";
+			// return $element->plaintext . '<br>';
 			
 		}
+
+		// clean up memory
+		$dom->clear();
+		unset($dom);
+		
+		return "<h1>SD_test</h1><pre>".print_r($variables, TRUE)."</pre>";
 		
 	}
 	

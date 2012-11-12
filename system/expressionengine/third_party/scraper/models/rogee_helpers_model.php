@@ -50,11 +50,11 @@ class Rogee_helpers_model extends CI_Model {
 	*/
 	public function param($param, $default = FALSE, $boolean = FALSE, $required = FALSE)
 	{
-	
+		
 		$name = $param;
 		$param = $this->EE->TMPL->fetch_param($name);
 	
-		if(!$param && $required)
+		if($param === FALSE && $required)
 		{
 			show_error('You must define a "'.$name.'" parameter.');
 		}
@@ -67,7 +67,7 @@ class Rogee_helpers_model extends CI_Model {
 		if($param !== FALSE && $boolean)
 		{				
 			$param = strtolower($param);
-			$param = ($param == 'true' || $param == 'yes' || $param == 'y' || $param == 'on' || $param == '1') ? TRUE : FALSE;
+			$param = ($param == 'true' || $param == 'yes' || $param == 'y' || $param == 'yup' || $param == 'on' || $param == '1') ? TRUE : FALSE;
 		}
 	
 		return $param;
