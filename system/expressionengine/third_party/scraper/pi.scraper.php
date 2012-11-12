@@ -104,10 +104,73 @@ class Scraper {
 		$this->_index = $this->H->param("index", FALSE);
 		$this->_limit = $this->H->param("limit", "100");
 		
-		$this->_prefix = $this->H->param("variable_prefix", "scraper:");
+		$this->_prefix = $this->H->param("variable_prefix", FALSE);
+		
 		$this->_debug = $this->H->param("debug", FALSE, TRUE);
 		
-		$this->return_data = $this->fetch();
+		// $this->return_data = $this->fetch();
+
+
+
+
+		// Master Variables Array
+		$variables = array();
+		
+		$this->_url = "http://michaelrog.com";
+		$this->_selector = "p";
+		$this->_index = -1;
+		
+		if ($this->_url !== FALSE && $this->_selector !== FALSE)
+		{
+
+			// Create DOM from URL or file
+			// $dom = file_get_html( $this->_url );
+	
+			// Find the selected elements
+			if ($this->_index !== FALSE)
+			{
+				// $results = $dom->find( $this->_selector, $this->_index);
+				// return $this->_index;
+			}
+			else
+			{
+				// $results = $dom->find( $this->_selector );
+				// return "nope";
+			}
+			
+			$dom = file_get_html( "http://michaelrog.com/" );
+			$results = $dom->find("html",0);
+			
+			$this->return_data = "<pre>".print_r($results, TRUE)."</pre>";
+			
+			// Find all images 
+			foreach($results as $element)
+			{
+				
+				$result_row = array(
+					$this->variable_prefix.'tag' => $element->tag,
+					$this->variable_prefix.'outertext' => $element->outertext,
+					$this->variable_prefix.'innertext' => $element->innertext,
+					$this->variable_prefix.'plaintext' => $element->plaintext
+					);
+				
+				$variables[] = $result_row;
+				
+				// return $element->plaintext . '<br>';
+				
+			}
+	
+			// clean up memory
+			$dom->clear();
+			unset($dom);
+			
+		}
+		
+		// $this->return_data = "<pre>".print_r($variables, TRUE)."</pre>";
+
+
+
+
 	
 	}
 
@@ -125,6 +188,9 @@ class Scraper {
 	public function fetch()
 	{	
 		
+		return "<div><pre>".print_r($this->_url, TRUE)."||".print_r($_this->_index, TRUE)."</pre></div>";
+		
+		return "1";
 		if ($this->_url != FALSE && $this->_selector != FALSE)
 		{
 
