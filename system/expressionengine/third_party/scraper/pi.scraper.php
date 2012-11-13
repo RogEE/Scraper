@@ -93,7 +93,6 @@ class Scraper {
 		$this->S = new simple_html_dom();
 		
 		// Get params
-
 		$this->_url = $this->H->param("url");
 		$this->_selector = $this->H->param("selector");
 		$this->_index = $this->H->param("index");
@@ -102,22 +101,23 @@ class Scraper {
 		($this->_prefix = $this->H->param("variable_prefix")) || ($this->_prefix = $this->H->param("var_prefix")) || ($this->_prefix = $this->H->param("prefix")) || ($this->_prefix = "");
 		$this->_debug = $this->H->param("debug", FALSE, TRUE);
 		
-		$this->return_data = $this->fetch();
+		// Fetch the MVA and parse the tagdata!
+		$this->return_data = $this->EE->TMPL->parse_variables($this->EE->TMPL->tagdata, $this->fetch_variables());
 	
 	}
 
 	/**
 	* ==============================================
-	* fetch()
+	* fetch_variables()
 	* ==============================================
 	*
 	* Fetch stuff and parse it lol
 	*
 	* @access public
-	* @return string
+	* @return array: Master Variables Array
 	*
 	*/
-	public function fetch()
+	public function fetch_variables()
 	{	
 		
 		$return_data = "";
@@ -144,21 +144,28 @@ class Scraper {
 		
 		$variables = array();
 		
+		// --- Process each found element --- //
+		
 		foreach($results as $element)
 		{
 			
 			$result_row = array();
 			
-			$child = $element->children();
-			if (is_null($child))
+			// We have to process the pair variables first, since they contain the same single variables as the root element
+			
+			// --- {children} --- //
+			
+			$children = $element->children();
+			if (is_null($children))
 			{
-				$result_row['children'] = array();
+				$result_row[$this->_prefix.'children'] = array();
 			}
 			else
 			{
-				$a = array();
-				foreach($child as $e)
+				$children_items = array();
+				foreach($children as $e)
 				{
+					$a = array();
 					$a[$this->_prefix.'tag'] = $e->tag;
 					$a[$this->_prefix.'outertext'] = $e->outertext;
 					$a[$this->_prefix.'innertext'] = $e->innertext;
@@ -167,118 +174,119 @@ class Scraper {
 					{
 						$a[$this->_prefix.'attr:'.$name] = $val;
 					}
+					$children_items[] = $a;
 				}
-				$result_row['children'] = $a;
+				$result_row[$this->_prefix.'children'] = $children_items;
 			}
+			
+			// --- {parent} --- //
 			
 			$parent = $element->parent();
 			if (is_null($parent))
 			{
-				$result_row['parent'] = array();
+				$result_row[$this->_prefix.'parent'] = array();
 			}
 			else
 			{
+				$e = $parent;
 				$a = array();
-				foreach($child as $e)
+				$a[$this->_prefix.'tag'] = $e->tag;
+				$a[$this->_prefix.'outertext'] = $e->outertext;
+				$a[$this->_prefix.'innertext'] = $e->innertext;
+				$a[$this->_prefix.'plaintext'] = $e->plaintext;
+				foreach($e->attr as $name => $val)
 				{
-					$a[$this->_prefix.'tag'] = $e->tag;
-					$a[$this->_prefix.'outertext'] = $e->outertext;
-					$a[$this->_prefix.'innertext'] = $e->innertext;
-					$a[$this->_prefix.'plaintext'] = $e->plaintext;
-					foreach($e->attr as $name => $val)
-					{
-						$a[$this->_prefix.'attr:'.$name] = $val;
-					}
+					$a[$this->_prefix.'attr:'.$name] = $val;
 				}
-				$result_row['parent'] = $a;
+				$result_row[$this->_prefix.'parent'] = array($a);
 			}
+			
+			// --- {first_child} --- //
 			
 			$first_child = $element->first_child();
 			if (is_null($first_child))
 			{
-				$result_row['first_child'] = array();
+				$result_row[$this->_prefix.'first_child'] = array();
 			}
 			else
 			{
+				$e = $first_child;
 				$a = array();
-				foreach($child as $e)
+				$a[$this->_prefix.'tag'] = $e->tag;
+				$a[$this->_prefix.'outertext'] = $e->outertext;
+				$a[$this->_prefix.'innertext'] = $e->innertext;
+				$a[$this->_prefix.'plaintext'] = $e->plaintext;
+				foreach($e->attr as $name => $val)
 				{
-					$a[$this->_prefix.'tag'] = $e->tag;
-					$a[$this->_prefix.'outertext'] = $e->outertext;
-					$a[$this->_prefix.'innertext'] = $e->innertext;
-					$a[$this->_prefix.'plaintext'] = $e->plaintext;
-					foreach($e->attr as $name => $val)
-					{
-						$a[$this->_prefix.'attr:'.$name] = $val;
-					}
+					$a[$this->_prefix.'attr:'.$name] = $val;
 				}
-				$result_row['first_child'] = $a;
+				$result_row[$this->_prefix.'first_child'] = array($a);
 			}
+			
+			// --- {last_child} --- //
 			
 			$last_child = $element->last_child();
-			if (!is_null($last_child))
+			if (is_null($last_child))
 			{
-				$result_row['last_child'] = array();
+				$result_row[$this->_prefix.'last_child'] = array();
 			}
 			else
 			{
+				$e = $last_child;
 				$a = array();
-				foreach($child as $e)
+				$a[$this->_prefix.'tag'] = $e->tag;
+				$a[$this->_prefix.'outertext'] = $e->outertext;
+				$a[$this->_prefix.'innertext'] = $e->innertext;
+				$a[$this->_prefix.'plaintext'] = $e->plaintext;
+				foreach($e->attr as $name => $val)
 				{
-					$a[$this->_prefix.'tag'] = $e->tag;
-					$a[$this->_prefix.'outertext'] = $e->outertext;
-					$a[$this->_prefix.'innertext'] = $e->innertext;
-					$a[$this->_prefix.'plaintext'] = $e->plaintext;
-					foreach($e->attr as $name => $val)
-					{
-						$a[$this->_prefix.'attr:'.$name] = $val;
-					}
+					$a[$this->_prefix.'attr:'.$name] = $val;
 				}
-				$result_row['last_child'] = $a;
+				$result_row[$this->_prefix.'last_child'] = array($a);
 			}
+			
+			// --- {next_sibling} --- //
 			
 			$next_sibling = $element->next_sibling();
-			if (!is_null($next_sibling))
+			if (is_null($next_sibling))
 			{
-				$result_row['next_sibling'] = array();
+				$result_row[$this->_prefix.'next_sibling'] = array();
 			}
 			else
 			{
+				$e = $next_sibling;
 				$a = array();
-				foreach($child as $e)
+				$a[$this->_prefix.'tag'] = $e->tag;
+				$a[$this->_prefix.'outertext'] = $e->outertext;
+				$a[$this->_prefix.'innertext'] = $e->innertext;
+				$a[$this->_prefix.'plaintext'] = $e->plaintext;
+				foreach($e->attr as $name => $val)
 				{
-					$a[$this->_prefix.'tag'] = $e->tag;
-					$a[$this->_prefix.'outertext'] = $e->outertext;
-					$a[$this->_prefix.'innertext'] = $e->innertext;
-					$a[$this->_prefix.'plaintext'] = $e->plaintext;
-					foreach($e->attr as $name => $val)
-					{
-						$a[$this->_prefix.'attr:'.$name] = $val;
-					}
+					$a[$this->_prefix.'attr:'.$name] = $val;
 				}
-				$result_row['next_sibling'] = $a;
+				$result_row[$this->_prefix.'next_sibling'] = array($a);
 			}
 			
+			// --- {prev_sibling} --- //
+			
 			$prev_sibling = $element->prev_sibling();
-			if (!is_null($prev_sibling))
+			if (is_null($prev_sibling))
 			{
-				$result_row['prev_sibling'] = array();
+				$result_row[$this->_prefix.'prev_sibling'] = array();
 			}
 			else
 			{
+				$e = $prev_sibling;
 				$a = array();
-				foreach($child as $e)
+				$a[$this->_prefix.'tag'] = $e->tag;
+				$a[$this->_prefix.'outertext'] = $e->outertext;
+				$a[$this->_prefix.'innertext'] = $e->innertext;
+				$a[$this->_prefix.'plaintext'] = $e->plaintext;
+				foreach($e->attr as $name => $val)
 				{
-					$a[$this->_prefix.'tag'] = $e->tag;
-					$a[$this->_prefix.'outertext'] = $e->outertext;
-					$a[$this->_prefix.'innertext'] = $e->innertext;
-					$a[$this->_prefix.'plaintext'] = $e->plaintext;
-					foreach($e->attr as $name => $val)
-					{
-						$a[$this->_prefix.'attr:'.$name] = $val;
-					}
+					$a[$this->_prefix.'attr:'.$name] = $val;
 				}
-				$result_row['prev_sibling'] = $a;
+				$result_row[$this->_prefix.'prev_sibling'] = array($a);
 			}
 
 			$result_row[$this->_prefix.'tag'] = $element->tag;
@@ -294,9 +302,8 @@ class Scraper {
 		$dom->clear();
 		unset($dom);
 		
-		// return parsed template
-		// return "<pre>".print_r($variables, TRUE)."</pre>";
-		return $this->EE->TMPL->parse_variables($this->EE->TMPL->tagdata, $variables);
+		// return Master Variables Array
+		return $variables;
 			
 	}
 	
@@ -317,7 +324,7 @@ class Scraper {
 	
 		$return_data = "";
 		
-		$return_data .= "<hr><h1>Param_test</h1>";
+		$return_data .= "<h1>Param_test</h1>";
 		
 		$return_data .= "<h3>URL</h3>";
 		$return_data .= "<pre>VAL: ".print_r($this->_url, TRUE)."</pre>";
@@ -355,49 +362,29 @@ class Scraper {
 	
 	/**
 	* ==============================================
-	* sd_test()
+	* raw()
 	* ==============================================
 	*
-	* Playing with SimpleHTMLDom stuff
+	* Output the raw Master Variables Array (print_r'd)
 	*
 	* @access public
 	* @return string
 	*
 	*/
-	public function sd_test()
+	public function raw()
 	{	
 	
-		// Master Variables Array
-		$variables = array();
+		$variables = $this->fetch_variables();
 		
-		$url = "http://www.google.com/";
-		$selector = "a";
-		$index = FALSE;
-
-		// Create DOM from URL or file
-		$dom = file_get_html( $url );
-		
-		$results = ( $index === FALSE ? $dom->find($selector) : array($dom->find($selector, $index)) );
-		
-		foreach($results as $element)
-		{
-			
-			$result_row = array(
-				$this->_prefix.'tag' => $element->tag,
-				$this->_prefix.'outertext' => $element->outertext,
-				$this->_prefix.'innertext' => $element->innertext,
-				$this->_prefix.'plaintext' => $element->plaintext
-				);
-			
-			$variables[] = $result_row;
-			
-		}
-
-		// clean up memory
-		$dom->clear();
-		unset($dom);
-		
-		return "<h1>SD_test</h1><pre>".print_r($variables, TRUE)."</pre>";
+		return "<h1>Selecting ".
+			$this->_selector.
+			($this->_index === FALSE ? "" : " [" . $this->_index . "] " ).
+			" from ".
+			($this->_url === FALSE ? "" : $this->_url).
+			"</h1><pre>".
+			print_r($variables, TRUE).
+			"</pre>"
+		;
 		
 	}
 	
