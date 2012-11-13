@@ -62,15 +62,13 @@ class Scraper {
 
 	public $return_data;
 	
-	private $_prefix;
-	private $_debug;
-	
 	private $_url;
 	private $_selector;
 	private $_index;
 	private $_limit;
 	
-	private $_ph = array();
+	private $_prefix;
+	private $_debug;
     
 	/**
 	* ==============================================
@@ -94,84 +92,18 @@ class Scraper {
 		// Instantiate the Simple HTML DOM library
 		$this->S = new simple_html_dom();
 		
-		// Defaults, initializations, params
-
-		$this->return_data = "";
+		// Get params
 
 		$this->_url = $this->H->param("url");
-		
-		$this->_url = $this->H->param("selector");
+		$this->_selector = $this->H->param("selector");
 		$this->_index = $this->H->param("index");
 		$this->_limit = intval($this->H->param("limit",100));
-		
-		// I support a wide range of prefix params, in case you're in the habit of using another addon's param names.
-		($this->_prefix = $this->H->param("variable_prefix")) || ($this->_prefix = $this->H->param("var_prefix")) || ($this->_prefix = $this->H->param("prefix", ""));
+		// I support a few prefix param names, in case you're in the habit of using another addon's prefix param.
+		($this->_prefix = $this->H->param("variable_prefix")) || ($this->_prefix = $this->H->param("var_prefix")) || ($this->_prefix = $this->H->param("prefix")) || ($this->_prefix = "");
 		
 		$this->_debug = $this->H->param("debug", FALSE, TRUE);
 		
 		$this->return_data = $this->fetch();
-
-
-
-/*
-		// Master Variables Array
-		$variables = array();
-		
-		$this->_url = "http://michaelrog.com";
-		$this->_selector = "p";
-		$this->_index = -1;
-		
-		if ($this->_url !== FALSE && $this->_selector !== FALSE)
-		{
-
-			// Create DOM from URL or file
-			// $dom = file_get_html( $this->_url );
-	
-			// Find the selected elements
-			if ($this->_index !== FALSE)
-			{
-				// $results = $dom->find( $this->_selector, $this->_index);
-				// return $this->_index;
-			}
-			else
-			{
-				// $results = $dom->find( $this->_selector );
-				// return "nope";
-			}
-			
-			$dom = file_get_html( "http://michaelrog.com/" );
-			$results = $dom->find("html",0);
-			
-			$this->return_data = "<pre>".print_r($results, TRUE)."</pre>";
-			
-			// Find all images 
-			foreach($results as $element)
-			{
-				
-				$result_row = array(
-					$this->variable_prefix.'tag' => $element->tag,
-					$this->variable_prefix.'outertext' => $element->outertext,
-					$this->variable_prefix.'innertext' => $element->innertext,
-					$this->variable_prefix.'plaintext' => $element->plaintext
-					);
-				
-				$variables[] = $result_row;
-				
-				// return $element->plaintext . '<br>';
-				
-			}
-	
-			// clean up memory
-			$dom->clear();
-			unset($dom);
-			
-		}
-		
-		// $this->return_data = "<pre>".print_r($variables, TRUE)."</pre>";
-
-
-*/
-
 	
 	}
 
@@ -189,67 +121,51 @@ class Scraper {
 	public function fetch()
 	{	
 		
-		return "<div><pre>".print_r($this->_url, TRUE)."||".print_r($_this->_index, TRUE)."</pre></div>";
+		$return_data = "";
 		
-		return "1";
-		
-		/*
-		if ($this->_url != FALSE && $this->_selector != FALSE)
+		if ($this->_url == FALSE)
 		{
-
-			// Load the remote document
-			$this->S->load_file($this->_url);
+			$this->_debug("You must provide a URL parameter.");
+			return "";
+			// show_error("Scraper error: You must provide a URL parameter.");
+		}
 		
-			// Master Variables Array
-			$variables = array();
-			$results = array();
-
-			// Find the selected elements
-			if ($this->_index !== FALSE)
-			{
-				// $results = $this->S->find( $this->_selector, $this->_index );
-				// in this variant, we get back a single element (or null),
-				// and we need it to be in array form...
-				// $results = is_null($results) ? array() : array($results);
-				$results = 1;
-			}
-			else
-			{
-				$results = $this->S->find( $this->_selector );
-			}
+		if ($this->_selector == FALSE)
+		{
+			$this->_selector("You must provide a selector parameter.");
+			return "";
+			// show_error("Scraper error: You must provide a selector parameter.");
+		}
+		
+		// Create the DOM object + Load HTML from our URL
+		$dom = new simple_html_dom();
+		$dom->load_file($this->_url);
+		
+		$results = ( $this->_index === FALSE ? $dom->find($this->_selector) : array($dom->find($this->_selector, $this->_index)) );
+		
+		$variables = array();
+		
+		foreach($results as $element)
+		{
 			
-			return "<div><pre>".print_r($results, TRUE)."</pre></div>";
-			
-			// Find all images 
-			foreach($results as $element)
-			{
-				
-				$result_row = array(
-					$this->_prefix.'tag' => $element->tag,
-					$this->_prefix.'outertext' => $element->outertext,
-					$this->_prefix.'innertext' => $element->innertext,
-					$this->_prefix.'plaintext' => $element->plaintext
+			$result_row = array(
+				$this->_prefix.'tag' => $element->tag,
+				$this->_prefix.'outertext' => $element->outertext,
+				$this->_prefix.'innertext' => $element->innertext,
+				$this->_prefix.'plaintext' => $element->plaintext
 				);
-				
-				$variables[] = $result_row;
-				
-			}
-	
-			return print_r($variables, TRUE);
-	
-			return $this->EE->TMPL->parse_variables($this->EE->TMPL->tagdata, $variables);
-	
-			// clean up memory
-			$this->S->clear();
-			unset($this->S);
+			
+			$variables[] = $result_row;
 			
 		}
-		else
-		{
-			return "nope.";
-		}
-		*/
-	
+
+		// clean up memory
+		$dom->clear();
+		unset($dom);
+		
+		// return parsed template
+		return $this->EE->TMPL->parse_variables($this->EE->TMPL->tagdata, $variables);
+			
 	}
 	
 	
@@ -269,45 +185,35 @@ class Scraper {
 	
 		$return_data = "";
 		
-		$return_data .= "<hr><h1>URL</h1>";
-		$return_data .= "<pre>CONST: ".print_r($this->_url, TRUE)."</pre>";
-		$return_data .= "<pre>ASSIGNMENT: ".($this->_url = $this->H->param("url"))."</pre>";
-		$return_data .= "<pre>ASSIGNED: ".print_r($this->_url, TRUE)."</pre>";
+		$return_data .= "<hr><h1>Param_test</h1>";
+		
+		$return_data .= "<h3>URL</h3>";
+		$return_data .= "<pre>VAL: ".print_r($this->_url, TRUE)."</pre>";
 		$return_data .= "<pre>IZ FALSE: ".($this->_url === FALSE)."</pre>";
 		$return_data .= "<pre>IZ TRUE: ".($this->_url === TRUE)."</pre>";
 
-		$return_data .= "<hr><h1>SELECTOR</h1>";
-		$return_data .= "<pre>CONST: ".print_r($this->_selector, TRUE)."</pre>";
-		$return_data .= "<pre>ASSIGNMENT: ".($this->_url = $this->H->param("selector"))."</pre>";
-		$return_data .= "<pre>ASSIGNED: ".print_r($this->_selector, TRUE)."</pre>";
+		$return_data .= "<h3>SELECTOR</h3>";
+		$return_data .= "<pre>VAL: ".print_r($this->_selector, TRUE)."</pre>";
 		$return_data .= "<pre>IZ FALSE: ".($this->_selector === FALSE)."</pre>";
 		$return_data .= "<pre>IZ TRUE: ".($this->_selector === TRUE)."</pre>";
 		
-		$return_data .= "<hr><h1>INDEX</h1>";
-		$return_data .= "<pre>CONST: ".print_r($this->_index, TRUE)."</pre>";
-		$return_data .= "<pre>ASSIGNMENT: ".($this->_index = $this->H->param("index"))."</pre>";
-		$return_data .= "<pre>ASSIGNED: ".print_r($this->_index, TRUE)."</pre>";
+		$return_data .= "<h3>INDEX</h3>";
+		$return_data .= "<pre>VAL: ".print_r($this->_index, TRUE)."</pre>";
 		$return_data .= "<pre>IZ FALSE: ".($this->_index === FALSE)."</pre>";
 		$return_data .= "<pre>IZ TRUE: ".($this->_index === TRUE)."</pre>";
 		
-		$return_data .= "<hr><h1>LIMIT</h1>";
-		$return_data .= "<pre>CONST: ".print_r($this->_limit, TRUE)."</pre>";
-		$return_data .= "<pre>ASSIGNMENT: ".($this->_limit = intval($this->H->param("limit",100)))."</pre>";
-		$return_data .= "<pre>ASSIGNED: ".print_r($this->_limit, TRUE)."</pre>";
+		$return_data .= "<h3>LIMIT</h3>";
+		$return_data .= "<pre>VAL: ".print_r($this->_limit, TRUE)."</pre>";
 		$return_data .= "<pre>IZ FALSE: ".($this->_limit === FALSE)."</pre>";
 		$return_data .= "<pre>IZ TRUE: ".($this->_limit === TRUE)."</pre>";
 
-		$return_data .= "<hr><h1>VAR PREFIX</h1>";
-		$return_data .= "<pre>CONST: ".print_r($this->_prefix, TRUE)."</pre>";
-		($this->_prefix = $this->H->param("variable_prefix")) || ($this->_prefix = $this->H->param("var_prefix")) || ($this->_prefix = $this->H->param("prefix", ""));
-		$return_data .= "<pre>ASSIGNED: ".print_r($this->_prefix, TRUE)."</pre>";
+		$return_data .= "<h3>VAR PREFIX</h3>";
+		$return_data .= "<pre>VAL: ".print_r($this->_prefix, TRUE)."</pre>";
 		$return_data .= "<pre>IZ FALSE: ".($this->_prefix === FALSE)."</pre>";
 		$return_data .= "<pre>IZ TRUE: ".($this->_prefix === TRUE)."</pre>";
 		
-		$return_data .= "<hr><h1>DEBUG</h1>";
-		$return_data .= "<pre>CONST: ".print_r($this->_debug, TRUE)."</pre>";
-		$return_data .= "<pre>ASSIGNMENT: ".($this->_debug = $this->H->param("debug", FALSE, TRUE))."</pre>";
-		$return_data .= "<pre>ASSIGNED: ".print_r($this->_debug, TRUE)."</pre>";
+		$return_data .= "<h3>DEBUG</h3>";
+		$return_data .= "<pre>VAL: ".print_r($this->_debug, TRUE)."</pre>";
 		$return_data .= "<pre>IZ FALSE: ".($this->_debug === FALSE)."</pre>";
 		$return_data .= "<pre>IZ TRUE: ".($this->_debug === TRUE)."</pre>";
 		
@@ -332,29 +238,26 @@ class Scraper {
 		// Master Variables Array
 		$variables = array();
 		
-		$url = "http://michaelrog.com";
+		$url = "http://www.google.com/";
 		$selector = "a";
-		$index = -1;
+		$index = FALSE;
 
 		// Create DOM from URL or file
 		$dom = file_get_html( $url );
 		
-		$results = $dom->find($selector, $index);
+		$results = ( $index === FALSE ? $dom->find($selector) : array($dom->find($selector, $index)) );
 		
-		// Find all images 
 		foreach($results as $element)
 		{
 			
 			$result_row = array(
-				$this->variable_prefix.'tag' => $element->tag,
-				$this->variable_prefix.'outertext' => $element->outertext,
-				$this->variable_prefix.'innertext' => $element->innertext,
-				$this->variable_prefix.'plaintext' => $element->plaintext
+				$this->_prefix.'tag' => $element->tag,
+				$this->_prefix.'outertext' => $element->outertext,
+				$this->_prefix.'innertext' => $element->innertext,
+				$this->_prefix.'plaintext' => $element->plaintext
 				);
 			
 			$variables[] = $result_row;
-			
-			// return $element->plaintext . '<br>';
 			
 		}
 
