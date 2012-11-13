@@ -104,6 +104,8 @@ class Scraper {
 		// Fetch the MVA and parse the tagdata!
 		$this->return_data = $this->EE->TMPL->parse_variables($this->EE->TMPL->tagdata, $this->fetch_variables());
 	
+		// TODO: Clean up un-parsed attribute variables (maybe add a param to specify replacement value)
+	
 	}
 
 	/**
@@ -173,15 +175,7 @@ class Scraper {
 				$result_row[$this->_prefix.'children_total_results'] = count($children);
 				foreach($children as $e)
 				{
-					$a = array();
-					$a[$this->_prefix.'tag'] = $e->tag;
-					$a[$this->_prefix.'outertext'] = $e->outertext;
-					$a[$this->_prefix.'innertext'] = $e->innertext;
-					$a[$this->_prefix.'plaintext'] = $e->plaintext;
-					foreach($e->attr as $name => $val)
-					{
-						$a[$this->_prefix.'attr:'.$name] = $val;
-					}
+					$a = $this->_get_element_variables($e);
 					$a[$this->_prefix.'children_count'] = $children_count++;
 					$a[$this->_prefix.'children_index'] = $children_index++;
 					$children_items[] = $a;
@@ -198,17 +192,7 @@ class Scraper {
 			}
 			else
 			{
-				$e = $parent;
-				$a = array();
-				$a[$this->_prefix.'tag'] = $e->tag;
-				$a[$this->_prefix.'outertext'] = $e->outertext;
-				$a[$this->_prefix.'innertext'] = $e->innertext;
-				$a[$this->_prefix.'plaintext'] = $e->plaintext;
-				foreach($e->attr as $name => $val)
-				{
-					$a[$this->_prefix.'attr:'.$name] = $val;
-				}
-				$result_row[$this->_prefix.'parent'] = array($a);
+				$result_row[$this->_prefix.'parent'] = array($this->_get_element_variables($parent));
 			}
 			
 			// --- {first_child} --- //
@@ -220,17 +204,7 @@ class Scraper {
 			}
 			else
 			{
-				$e = $first_child;
-				$a = array();
-				$a[$this->_prefix.'tag'] = $e->tag;
-				$a[$this->_prefix.'outertext'] = $e->outertext;
-				$a[$this->_prefix.'innertext'] = $e->innertext;
-				$a[$this->_prefix.'plaintext'] = $e->plaintext;
-				foreach($e->attr as $name => $val)
-				{
-					$a[$this->_prefix.'attr:'.$name] = $val;
-				}
-				$result_row[$this->_prefix.'first_child'] = array($a);
+				$result_row[$this->_prefix.'first_child'] = array($this->_get_element_variables($first_child));
 			}
 			
 			// --- {last_child} --- //
@@ -242,17 +216,7 @@ class Scraper {
 			}
 			else
 			{
-				$e = $last_child;
-				$a = array();
-				$a[$this->_prefix.'tag'] = $e->tag;
-				$a[$this->_prefix.'outertext'] = $e->outertext;
-				$a[$this->_prefix.'innertext'] = $e->innertext;
-				$a[$this->_prefix.'plaintext'] = $e->plaintext;
-				foreach($e->attr as $name => $val)
-				{
-					$a[$this->_prefix.'attr:'.$name] = $val;
-				}
-				$result_row[$this->_prefix.'last_child'] = array($a);
+				$result_row[$this->_prefix.'last_child'] = array($this->_get_element_variables($last_child));
 			}
 			
 			// --- {next_sibling} --- //
@@ -264,17 +228,7 @@ class Scraper {
 			}
 			else
 			{
-				$e = $next_sibling;
-				$a = array();
-				$a[$this->_prefix.'tag'] = $e->tag;
-				$a[$this->_prefix.'outertext'] = $e->outertext;
-				$a[$this->_prefix.'innertext'] = $e->innertext;
-				$a[$this->_prefix.'plaintext'] = $e->plaintext;
-				foreach($e->attr as $name => $val)
-				{
-					$a[$this->_prefix.'attr:'.$name] = $val;
-				}
-				$result_row[$this->_prefix.'next_sibling'] = array($a);
+				$result_row[$this->_prefix.'next_sibling'] = array($this->_get_element_variables($next_sibling));
 			}
 			
 			// --- {prev_sibling} --- //
@@ -286,28 +240,12 @@ class Scraper {
 			}
 			else
 			{
-				$e = $prev_sibling;
-				$a = array();
-				$a[$this->_prefix.'tag'] = $e->tag;
-				$a[$this->_prefix.'outertext'] = $e->outertext;
-				$a[$this->_prefix.'innertext'] = $e->innertext;
-				$a[$this->_prefix.'plaintext'] = $e->plaintext;
-				foreach($e->attr as $name => $val)
-				{
-					$a[$this->_prefix.'attr:'.$name] = $val;
-				}
-				$result_row[$this->_prefix.'prev_sibling'] = array($a);
+				$result_row[$this->_prefix.'prev_sibling'] = array($this->_get_element_variables($prev_sibling));
 			}
 
-			$result_row[$this->_prefix.'tag'] = $element->tag;
-			$result_row[$this->_prefix.'outertext'] = $element->outertext;
-			$result_row[$this->_prefix.'innertext'] = $element->innertext;
-			$result_row[$this->_prefix.'plaintext'] = $element->plaintext;
+			// --- primary element --- //
 
-			foreach($element->attr as $name => $val)
-			{
-				$result_row[$this->_prefix.'attr:'.$name] = $val;
-			}
+			$result_row = array_merge($result_row, $this->_get_element_variables($element));
 			
 			$result_row[$this->_prefix.'count'] = $element_count++;
 			$result_row[$this->_prefix.'total_results'] = $element_total_results;
@@ -325,58 +263,33 @@ class Scraper {
 			
 	}
 	
-	
+
 	/**
 	* ==============================================
-	* param_test()
+	* _get_element_variables()
 	* ==============================================
 	*
-	* Experimenting with setting parameters
+	* Construct a small bit of array containing variables, per-element
 	*
-	* @access public
-	* @return string
+	* @access private
+	* @param Element
+	* @return array
 	*
 	*/
-	public function param_test()
-	{	
-	
-		$return_data = "";
-		
-		$return_data .= "<h1>Param_test</h1>";
-		
-		$return_data .= "<h3>URL</h3>";
-		$return_data .= "<pre>VAL: ".print_r($this->_url, TRUE)."</pre>";
-		$return_data .= "<pre>IZ FALSE: ".($this->_url === FALSE)."</pre>";
-		$return_data .= "<pre>IZ TRUE: ".($this->_url === TRUE)."</pre>";
-
-		$return_data .= "<h3>SELECTOR</h3>";
-		$return_data .= "<pre>VAL: ".print_r($this->_selector, TRUE)."</pre>";
-		$return_data .= "<pre>IZ FALSE: ".($this->_selector === FALSE)."</pre>";
-		$return_data .= "<pre>IZ TRUE: ".($this->_selector === TRUE)."</pre>";
-		
-		$return_data .= "<h3>INDEX</h3>";
-		$return_data .= "<pre>VAL: ".print_r($this->_index, TRUE)."</pre>";
-		$return_data .= "<pre>IZ FALSE: ".($this->_index === FALSE)."</pre>";
-		$return_data .= "<pre>IZ TRUE: ".($this->_index === TRUE)."</pre>";
-		
-		$return_data .= "<h3>LIMIT</h3>";
-		$return_data .= "<pre>VAL: ".print_r($this->_limit, TRUE)."</pre>";
-		$return_data .= "<pre>IZ FALSE: ".($this->_limit === FALSE)."</pre>";
-		$return_data .= "<pre>IZ TRUE: ".($this->_limit === TRUE)."</pre>";
-
-		$return_data .= "<h3>VAR PREFIX</h3>";
-		$return_data .= "<pre>VAL: ".print_r($this->_prefix, TRUE)."</pre>";
-		$return_data .= "<pre>IZ FALSE: ".($this->_prefix === FALSE)."</pre>";
-		$return_data .= "<pre>IZ TRUE: ".($this->_prefix === TRUE)."</pre>";
-		
-		$return_data .= "<h3>DEBUG</h3>";
-		$return_data .= "<pre>VAL: ".print_r($this->_debug, TRUE)."</pre>";
-		$return_data .= "<pre>IZ FALSE: ".($this->_debug === FALSE)."</pre>";
-		$return_data .= "<pre>IZ TRUE: ".($this->_debug === TRUE)."</pre>";
-		
-		return $return_data;
-		
+	private function _get_element_variables($e)
+	{		
+		$a = array();
+		$a[$this->_prefix.'tag'] = $e->tag;
+		$a[$this->_prefix.'outertext'] = $e->outertext;
+		$a[$this->_prefix.'innertext'] = $e->innertext;
+		$a[$this->_prefix.'plaintext'] = $e->plaintext;
+		foreach($e->attr as $name => $val)
+		{
+			$a[$this->_prefix.'attr:'.$name] = $val;
+		}
+		return $a;
 	}
+
 	
 	/**
 	* ==============================================
