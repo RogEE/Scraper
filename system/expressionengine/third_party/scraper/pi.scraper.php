@@ -100,7 +100,6 @@ class Scraper {
 		$this->_limit = intval($this->H->param("limit",100));
 		// I support a few prefix param names, in case you're in the habit of using another addon's prefix param.
 		($this->_prefix = $this->H->param("variable_prefix")) || ($this->_prefix = $this->H->param("var_prefix")) || ($this->_prefix = $this->H->param("prefix")) || ($this->_prefix = "");
-		
 		$this->_debug = $this->H->param("debug", FALSE, TRUE);
 		
 		$this->return_data = $this->fetch();
@@ -148,15 +147,147 @@ class Scraper {
 		foreach($results as $element)
 		{
 			
-			$result_row = array(
-				$this->_prefix.'tag' => $element->tag,
-				$this->_prefix.'outertext' => $element->outertext,
-				$this->_prefix.'innertext' => $element->innertext,
-				$this->_prefix.'plaintext' => $element->plaintext
-				);
+			$result_row = array();
 			
+			$child = $element->children();
+			if (is_null($child))
+			{
+				$result_row['children'] = array();
+			}
+			else
+			{
+				$a = array();
+				foreach($child as $e)
+				{
+					$a[$this->_prefix.'tag'] = $e->tag;
+					$a[$this->_prefix.'outertext'] = $e->outertext;
+					$a[$this->_prefix.'innertext'] = $e->innertext;
+					$a[$this->_prefix.'plaintext'] = $e->plaintext;
+					foreach($e->attr as $name => $val)
+					{
+						$a[$this->_prefix.'attr:'.$name] = $val;
+					}
+				}
+				$result_row['children'] = $a;
+			}
+			
+			$parent = $element->parent();
+			if (is_null($parent))
+			{
+				$result_row['parent'] = array();
+			}
+			else
+			{
+				$a = array();
+				foreach($child as $e)
+				{
+					$a[$this->_prefix.'tag'] = $e->tag;
+					$a[$this->_prefix.'outertext'] = $e->outertext;
+					$a[$this->_prefix.'innertext'] = $e->innertext;
+					$a[$this->_prefix.'plaintext'] = $e->plaintext;
+					foreach($e->attr as $name => $val)
+					{
+						$a[$this->_prefix.'attr:'.$name] = $val;
+					}
+				}
+				$result_row['parent'] = $a;
+			}
+			
+			$first_child = $element->first_child();
+			if (is_null($first_child))
+			{
+				$result_row['first_child'] = array();
+			}
+			else
+			{
+				$a = array();
+				foreach($child as $e)
+				{
+					$a[$this->_prefix.'tag'] = $e->tag;
+					$a[$this->_prefix.'outertext'] = $e->outertext;
+					$a[$this->_prefix.'innertext'] = $e->innertext;
+					$a[$this->_prefix.'plaintext'] = $e->plaintext;
+					foreach($e->attr as $name => $val)
+					{
+						$a[$this->_prefix.'attr:'.$name] = $val;
+					}
+				}
+				$result_row['first_child'] = $a;
+			}
+			
+			$last_child = $element->last_child();
+			if (!is_null($last_child))
+			{
+				$result_row['last_child'] = array();
+			}
+			else
+			{
+				$a = array();
+				foreach($child as $e)
+				{
+					$a[$this->_prefix.'tag'] = $e->tag;
+					$a[$this->_prefix.'outertext'] = $e->outertext;
+					$a[$this->_prefix.'innertext'] = $e->innertext;
+					$a[$this->_prefix.'plaintext'] = $e->plaintext;
+					foreach($e->attr as $name => $val)
+					{
+						$a[$this->_prefix.'attr:'.$name] = $val;
+					}
+				}
+				$result_row['last_child'] = $a;
+			}
+			
+			$next_sibling = $element->next_sibling();
+			if (!is_null($next_sibling))
+			{
+				$result_row['next_sibling'] = array();
+			}
+			else
+			{
+				$a = array();
+				foreach($child as $e)
+				{
+					$a[$this->_prefix.'tag'] = $e->tag;
+					$a[$this->_prefix.'outertext'] = $e->outertext;
+					$a[$this->_prefix.'innertext'] = $e->innertext;
+					$a[$this->_prefix.'plaintext'] = $e->plaintext;
+					foreach($e->attr as $name => $val)
+					{
+						$a[$this->_prefix.'attr:'.$name] = $val;
+					}
+				}
+				$result_row['next_sibling'] = $a;
+			}
+			
+			$prev_sibling = $element->prev_sibling();
+			if (!is_null($prev_sibling))
+			{
+				$result_row['prev_sibling'] = array();
+			}
+			else
+			{
+				$a = array();
+				foreach($child as $e)
+				{
+					$a[$this->_prefix.'tag'] = $e->tag;
+					$a[$this->_prefix.'outertext'] = $e->outertext;
+					$a[$this->_prefix.'innertext'] = $e->innertext;
+					$a[$this->_prefix.'plaintext'] = $e->plaintext;
+					foreach($e->attr as $name => $val)
+					{
+						$a[$this->_prefix.'attr:'.$name] = $val;
+					}
+				}
+				$result_row['prev_sibling'] = $a;
+			}
+
+			$result_row[$this->_prefix.'tag'] = $element->tag;
+			$result_row[$this->_prefix.'outertext'] = $element->outertext;
+			$result_row[$this->_prefix.'innertext'] = $element->innertext;
+			$result_row[$this->_prefix.'plaintext'] = $element->plaintext;
+
 			$variables[] = $result_row;
-			
+
 		}
 
 		// clean up memory
@@ -164,6 +295,7 @@ class Scraper {
 		unset($dom);
 		
 		// return parsed template
+		// return "<pre>".print_r($variables, TRUE)."</pre>";
 		return $this->EE->TMPL->parse_variables($this->EE->TMPL->tagdata, $variables);
 			
 	}
