@@ -140,9 +140,13 @@ class Scraper {
 		$dom = new simple_html_dom();
 		$dom->load_file($this->_url);
 		
-		$results = ( $this->_index === FALSE ? $dom->find($this->_selector) : array($dom->find($this->_selector, $this->_index)) );
+		$results = ( $this->_index === FALSE ? $dom->find($this->_selector) : array($dom->find($this->_selector, intval($this->_index))) );
 		
 		$variables = array();
+
+		// We keep track of our own count/total_results variables, so they can be prefixed.
+		$element_count = 1;
+		$element_total_results = count($results);
 		
 		// --- Process each found element --- //
 		
@@ -163,6 +167,10 @@ class Scraper {
 			else
 			{
 				$children_items = array();
+				// We're going to provide count/index variables for the children elements, just to be nice...
+				$children_count = 1;
+				$children_index = 0;
+				$result_row[$this->_prefix.'children_total_results'] = count($children);
 				foreach($children as $e)
 				{
 					$a = array();
@@ -174,6 +182,8 @@ class Scraper {
 					{
 						$a[$this->_prefix.'attr:'.$name] = $val;
 					}
+					$a[$this->_prefix.'children_count'] = $children_count++;
+					$a[$this->_prefix.'children_index'] = $children_index++;
 					$children_items[] = $a;
 				}
 				$result_row[$this->_prefix.'children'] = $children_items;
@@ -293,6 +303,14 @@ class Scraper {
 			$result_row[$this->_prefix.'outertext'] = $element->outertext;
 			$result_row[$this->_prefix.'innertext'] = $element->innertext;
 			$result_row[$this->_prefix.'plaintext'] = $element->plaintext;
+
+			foreach($element->attr as $name => $val)
+			{
+				$result_row[$this->_prefix.'attr:'.$name] = $val;
+			}
+			
+			$result_row[$this->_prefix.'count'] = $element_count++;
+			$result_row[$this->_prefix.'total_results'] = $element_total_results;
 
 			$variables[] = $result_row;
 
