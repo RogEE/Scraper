@@ -67,6 +67,9 @@ class Scraper {
 	private $_index;
 	private $_limit;
 	
+	private $_placeholders = array();
+	private $_tagdata;
+	
 	private $_prefix;
 	private $_debug;
     
@@ -98,13 +101,22 @@ class Scraper {
 		$this->_index = $this->H->param("index");
 		$this->_limit = intval($this->H->param("limit",100));
 		// I support a few prefix param names, in case you're in the habit of using another addon's prefix param.
+		
 		($this->_prefix = $this->H->param("variable_prefix")) || ($this->_prefix = $this->H->param("var_prefix")) || ($this->_prefix = $this->H->param("prefix")) || ($this->_prefix = "");
 		$this->_debug = $this->H->param("debug", FALSE, TRUE);
 		
+		$this->_tagdata = $this->EE->TMPL->tagdata;
+		
 		// Fetch the MVA and parse the tagdata!
-		$this->return_data = $this->EE->TMPL->parse_variables($this->EE->TMPL->tagdata, $this->fetch_variables());
-	
+		$this->return_data = $this->EE->TMPL->parse_variables($this->_tagdata, $this->fetch_variables());
+
 		// TODO: Clean up un-parsed attribute variables (maybe add a param to specify replacement value)
+		
+		// TODO: no_results conditional support
+		
+		// TODO: Use this->S instead of $dom
+		
+		// TODO: HTTP Authentication?
 	
 	}
 
@@ -242,6 +254,9 @@ class Scraper {
 			{
 				$result_row[$this->_prefix.'prev_sibling'] = array($this->_get_element_variables($prev_sibling));
 			}
+			
+			// --- {find} --- //
+			
 
 			// --- primary element --- //
 
@@ -289,6 +304,7 @@ class Scraper {
 		}
 		return $a;
 	}
+
 
 	
 	/**
@@ -344,6 +360,132 @@ http://rog.ee/scraper
 		ob_end_clean();
 		return $buffer;
 		
+	}
+
+	/**
+	* ==============================================
+	* parse_advanced_tags()
+	* ==============================================
+	*
+	* Queues up the {find ...} tags in the _advanced_tags placeholder array
+	*
+	* @access private
+	* @param array: matches
+	* @return string: placeholder
+	*
+	*/
+	public function parse_advanced_tags()
+	{
+		
+		foreach ($this->EE->TMPL->var_pair as $tag => $tag_details)
+		{
+			
+			// --- parse {find} tags --- //
+			$type = str_replace($this->_prefix, "", strtok($tag, " "));
+			
+			if ($type == "find")
+			{
+				
+				$this_tag = array();
+				$this_tag = array_merge
+				(
+					array
+					(
+						'tag' => $tag,
+						'closing_tag' => SLASH.$this->_prefix.$type,
+						'type' => $type
+					),
+					$tag_details
+				);
+				
+				$ph = $this->_make_placeholder($this_tag);
+				
+				// $temp = preg_match("/".LD.$key.RD."(.*?)".LD.'\\'.SLASH.'items'.RD."/s", $this->EE->TMPL->tagdata, $matches);
+			}
+			
+		}
+	
+		return "<pre>".print_r($this->_placeholders, true)."</pre>";
+		
+		/*
+		// preg_replace_callback() returns NULL on PCRE error
+		if ($tagdata === NULL)
+		{
+			$this->_pcre_error();
+		}
+		else
+		{
+			$this->_tagdata = $tagdata;
+		}
+
+		*/
+	}
+
+	/**
+	* ==============================================
+	* _make_placeholder()
+	* ==============================================
+	*
+	* Creates an entry for the provided tag item in the _placeholders array
+	*
+	* @access private
+	* @param string: tag type
+	* @param array: tag item details
+	* @return string: placeholder name
+	*
+	*/
+	private function _make_placeholder($item)
+	{
+		$ph = __CLASS__.'_ph_'.count($this->_placeholders);
+		$this->_placeholders[$ph] = $item;
+		return $ph;
+	}
+	
+	/**
+	* ==============================================
+	* _pcre_error()
+	* ==============================================
+	*
+	* Log PCRE error for debugging
+	*
+	* @access private
+	* @return void
+	*
+	*/	
+	private function _pcre_error()
+	{
+		// either an unsuccessful match, or a PCRE error occurred
+        $pcre_err = preg_last_error();  // PHP 5.2 and above
+
+		if ($pcre_err === PREG_NO_ERROR)
+		{
+			$this->EE->TMPL->log_item("Scraper: Successful non-match");
+		}
+		else 
+		{
+            // preg_match error :(
+			switch ($pcre_err) 
+			{
+				case PREG_INTERNAL_ERROR:
+					$this->_debug("Scraper: PREG_INTERNAL_ERROR");
+					break;
+				case PREG_BACKTRACK_LIMIT_ERROR:
+					$this->_debug("Scraper: PREG_BACKTRACK_LIMIT_ERROR");
+					break;
+				case PREG_RECURSION_LIMIT_ERROR:
+					$this->_debug("Scraper: PREG_RECURSION_LIMIT_ERROR");
+					break;
+				case PREG_BAD_UTF8_ERROR:
+					$this->_debug("Scraper: PREG_BAD_UTF8_ERROR");
+					break;
+				case PREG_BAD_UTF8_OFFSET_ERROR:
+					$this->_debug("Scraper: PREG_BAD_UTF8_OFFSET_ERROR");
+					break;
+				default:
+					$this->_debug("Scraper: Unrecognized PREG error");
+					break;
+			}
+		}
 	}
 
 
