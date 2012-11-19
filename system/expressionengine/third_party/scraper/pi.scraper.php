@@ -369,6 +369,37 @@ class Scraper {
 		ob_start();
 ?>
 
+{exp:scraper url="http://google.com" selector="a" index="" prefix=""}
+
+	{tag}
+	{outertext}
+	{innertext}
+	{plaintext}
+	{attr:id}
+	{count} / {total_results}
+	
+	{if children_total_results}
+	{children}
+		{tag}
+		(etc.)
+		{children_count} / {children_total_results}
+	{/children}
+	{/if}
+
+	{find selector="span" index=""}
+		{tag}
+		(etc.)
+		{found_count} / {found_total_results}
+	{/find}
+
+{/exp:scraper}
+
+You can use any valid CSS selector; If you want to use an attribute selector that contains spaces, you need to quote-wrap it.
+
+Leaving the index parameter blank will return the first result (as if you'd set index="0").
+
+An index of -1 will return the last item.
+
 For more information, see the complete docs:
 http://rog.ee/scraper
 
@@ -574,6 +605,10 @@ http://rog.ee/scraper
 							$advanced_variables[$ph] = $found_elements_tags;
 						}
 						
+					}
+					else
+					{
+						$advanced_variables[$ph] = array();
 					}
 			
 				}
