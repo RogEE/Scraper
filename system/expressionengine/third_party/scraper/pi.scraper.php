@@ -58,7 +58,6 @@ class Scraper {
 
 	private $EE;
 	private $H;
-	private $S;
 
 	public $return_data;
 	
@@ -100,14 +99,15 @@ class Scraper {
 		$this->_url = $this->H->param("url");
 		$this->_selector = $this->H->param("selector");
 		$this->_index = $this->H->param("index");
-		$this->_limit = intval($this->H->param("limit",100));
+		// TODO: $this->_limit = intval($this->H->param("limit",100));
+
 		// I support a few prefix param names, in case you're in the habit of using another addon's prefix param.
-		
 		($this->_prefix = $this->H->param("variable_prefix")) || ($this->_prefix = $this->H->param("var_prefix")) || ($this->_prefix = $this->H->param("prefix")) || ($this->_prefix = "");
 		$this->_debug = $this->H->param("debug", FALSE, TRUE);
 		
 		$this->_tagdata = $this->EE->TMPL->tagdata;
-		
+		$this->_there_are_advanced_tags = $this->_parse_advanced_tags();
+
 		// Fetch the MVA and parse the tagdata!
 		$this->return_data = $this->EE->TMPL->parse_variables($this->_tagdata, $this->fetch_variables());
 
@@ -115,13 +115,14 @@ class Scraper {
 		
 		// TODO: no_results conditional support
 		
-		// TODO: Use this->S instead of $dom
-		
 		// TODO: HTTP Authentication?
 		
 		// TODO: Make debug() do real stuff
+		
+		// TODO: Implement limit param?
 	
 	}
+
 
 	/**
 	* ==============================================
@@ -136,8 +137,6 @@ class Scraper {
 	*/
 	public function fetch_variables()
 	{	
-		
-		$return_data = "";
 		
 		if ($this->_url == FALSE)
 		{
@@ -260,7 +259,6 @@ class Scraper {
 			
 			// --- advanced tags (i.e. {find}) --- //
 			
-			$this->_there_are_advanced_tags = $this->_parse_advanced_tags();
 			$result_row = array_merge($result_row, $this->_process_advanced_variables($element));
 
 			// --- primary element --- //
@@ -539,9 +537,9 @@ http://rog.ee/scraper
 					if (!empty($s))
 					{
 					
-						if (is_int($i))
+						if (!is_null($i))
 						{
-							$found_elements = array($origin_element->find($s, $i));
+							$found_elements = array($origin_element->find($s, intval($i)));
 						}
 						else
 						{
