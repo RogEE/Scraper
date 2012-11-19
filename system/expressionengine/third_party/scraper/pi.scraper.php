@@ -68,6 +68,7 @@ class Scraper {
 	private $_limit;
 	
 	private $_placeholders = array();
+	private $_there_are_advanced_tags;
 	private $_tagdata;
 	
 	private $_prefix;
@@ -117,6 +118,8 @@ class Scraper {
 		// TODO: Use this->S instead of $dom
 		
 		// TODO: HTTP Authentication?
+		
+		// TODO: Make debug() do real stuff
 	
 	}
 
@@ -255,8 +258,10 @@ class Scraper {
 				$result_row[$this->_prefix.'prev_sibling'] = array($this->_get_element_variables($prev_sibling));
 			}
 			
-			// --- {find} --- //
+			// --- advanced tags (i.e. {find}) --- //
 			
+			$this->_there_are_advanced_tags = $this->_parse_advanced_tags();
+			$result_row = array_merge($result_row, $this->_process_advanced_variables($element));
 
 			// --- primary element --- //
 
@@ -330,6 +335,14 @@ class Scraper {
 			($this->_url === FALSE ? "" : $this->_url).
 			"</h1><pre>".
 			print_r($variables, TRUE).
+			"</pre>".
+			"<h1>Advanced variables/placeholders</h1>".
+			"<pre>".
+			print_r($this->_placeholders, TRUE).
+			"</pre>".
+			"<h1>Tagdata after placeholder replacements</h1>".
+			"<pre>".
+			print_r($this->_tagdata, TRUE).
 			"</pre>"
 		;
 		
@@ -364,27 +377,33 @@ http://rog.ee/scraper
 
 	/**
 	* ==============================================
-	* parse_advanced_tags()
+	* _parse_advanced_tags()
 	* ==============================================
 	*
 	* Queues up the {find ...} tags in the _advanced_tags placeholder array
 	*
 	* @access private
 	* @param array: matches
-	* @return string: placeholder
+	* @return boolean: Do we need to process advnaced tags?
 	*
 	*/
-	public function parse_advanced_tags()
+	private function _parse_advanced_tags()
 	{
 		
+		$there_are_advanced_tags = FALSE;
+
 		foreach ($this->EE->TMPL->var_pair as $tag => $tag_details)
 		{
 			
 			// --- parse {find} tags --- //
-			$type = str_replace($this->_prefix, "", strtok($tag, " "));
+			$type = str_replace($this->_prefix, '', strtok($tag, ' '));
 			
-			if ($type == "find")
+			if ($type == 'find')
 			{
+			
+				$there_are_advanced_tags = TRUE;
+				
+				$closing_tag = "/".$this->_prefix.$type;
 				
 				$this_tag = array();
 				$this_tag = array_merge
@@ -392,7 +411,7 @@ http://rog.ee/scraper
 					array
 					(
 						'tag' => $tag,
-						'closing_tag' => SLASH.$this->_prefix.$type,
+						'closing_tag' => $closing_tag,
 						'type' => $type
 					),
 					$tag_details
@@ -400,25 +419,24 @@ http://rog.ee/scraper
 				
 				$ph = $this->_make_placeholder($this_tag);
 				
-				// $temp = preg_match("/".LD.$key.RD."(.*?)".LD.'\\'.SLASH.'items'.RD."/s", $this->EE->TMPL->tagdata, $matches);
+				$pattern = '/'.LD.$tag.RD.'(.*?)'.LD.'\\'.$closing_tag.RD.'/s';
+				$tagdata = preg_replace($pattern, '{'.$ph.'}$1{/'.$ph.'}', $this->_tagdata);
+				// preg_replace() returns NULL on PCRE error
+				if (is_null($tagdata))
+				{
+					$this->_pcre_error();
+				}
+				else
+				{
+					$this->_tagdata = $tagdata;
+				}
+				
 			}
 			
 		}
-	
-		return "<pre>".print_r($this->_placeholders, true)."</pre>";
-		
-		/*
-		// preg_replace_callback() returns NULL on PCRE error
-		if ($tagdata === NULL)
-		{
-			$this->_pcre_error();
-		}
-		else
-		{
-			$this->_tagdata = $tagdata;
-		}
 
-		*/
+		return $there_are_advanced_tags;
+
 	}
 
 	/**
@@ -487,6 +505,83 @@ http://rog.ee/scraper
 			}
 		}
 	}
+
+
+	/**
+	* ==============================================
+	* _process_advanced_variables()
+	* ==============================================
+	*
+	* Publish a debugging message
+	*
+	* @access private
+	* @param Element
+	* @return array
+	*
+	*/
+	private function _process_advanced_variables($origin_element)
+	{	
+	
+		$advanced_variables = array();
+
+		if ($this->_there_are_advanced_tags)
+		{
+			foreach ($this->_placeholders as $ph => $tag_details)
+			{
+	
+				// --- {find} tags --- ///
+			
+				if ($tag_details['type'] == 'find')
+				{
+					$s = $tag_details['selector'];
+					$i = $tag_details['index'];
+   
+					if (!empty($s))
+					{
+					
+						if (is_int($i))
+						{
+							$found_elements = array($origin_element->find($s, $i));
+						}
+						else
+						{
+							$found_elements = $origin_element->find($s);
+						}
+
+						if (is_null($found_elements))
+						{
+							return array();
+						}
+						else
+						{
+							$found_elements_tags = array();
+							// We're going to provide count/index variables for the children elements, just to be nice...
+							$found_count = 1;
+							$found_index = 0;
+							$found_total_results = count($found_elements);
+							foreach($found_elements as $e)
+							{
+								$a = $this->_get_element_variables($e);
+								$a[$this->_prefix.'found_count'] = $found_count++;
+								$a[$this->_prefix.'found_index'] = $found_index++;
+								$a[$this->_prefix.'found_total_results'] = $found_total_results;
+								$found_elements_tags[] = $a;
+							}
+							$advanced_variables[$ph] = $found_elements_tags;
+						}
+						
+					}
+			
+				}
+
+			}
+
+		}
+		
+		return $advanced_variables;
+		
+	}
+
 
 
 	/**
