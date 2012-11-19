@@ -109,15 +109,21 @@ class Scraper {
 		$this->_there_are_advanced_tags = $this->_parse_advanced_tags();
 
 		// Fetch the MVA and parse the tagdata!
-		$this->return_data = $this->EE->TMPL->parse_variables($this->_tagdata, $this->fetch_variables());
+		$variables = $this->fetch_variables();
+		if (empty($variables))
+		{
+			$this->return_data = $this->EE->TMPL->no_results();	
+		}
+		else
+		{
+			$this->return_data = $this->EE->TMPL->parse_variables(rtrim($this->_tagdata), $variables);
+		}
 
 		// TODO: Clean up un-parsed attribute variables (maybe add a param to specify replacement value)
 		
 		// TODO: no_results conditional support
 		
 		// TODO: HTTP Authentication?
-		
-		// TODO: Make debug() do real stuff
 		
 		// TODO: Implement limit param?
 	
@@ -147,15 +153,15 @@ class Scraper {
 		
 		if ($this->_selector == FALSE)
 		{
-			$this->_selector("You must provide a selector parameter.");
+			$this->_debug("You must provide a selector parameter.");
 			return "";
 			// show_error("Scraper error: You must provide a selector parameter.");
 		}
 		
 		// Create the DOM object + Load HTML from our URL
 		$dom = new simple_html_dom();
-		$dom->load_file($this->_url);
-		
+		$dom->load_file($this->_url);				
+
 		$results = ( $this->_index === FALSE ? $dom->find($this->_selector) : array($dom->find($this->_selector, intval($this->_index))) );
 		
 		$variables = array();
@@ -475,7 +481,7 @@ http://rog.ee/scraper
 
 		if ($pcre_err === PREG_NO_ERROR)
 		{
-			$this->EE->TMPL->log_item("Scraper: Successful non-match");
+			$this->EE->TMPL->log_item("PCRE Successful non-match");
 		}
 		else 
 		{
@@ -483,22 +489,22 @@ http://rog.ee/scraper
 			switch ($pcre_err) 
 			{
 				case PREG_INTERNAL_ERROR:
-					$this->_debug("Scraper: PREG_INTERNAL_ERROR");
+					$this->_debug("PREG_INTERNAL_ERROR");
 					break;
 				case PREG_BACKTRACK_LIMIT_ERROR:
-					$this->_debug("Scraper: PREG_BACKTRACK_LIMIT_ERROR");
+					$this->_debug("PREG_BACKTRACK_LIMIT_ERROR");
 					break;
 				case PREG_RECURSION_LIMIT_ERROR:
-					$this->_debug("Scraper: PREG_RECURSION_LIMIT_ERROR");
+					$this->_debug("PREG_RECURSION_LIMIT_ERROR");
 					break;
 				case PREG_BAD_UTF8_ERROR:
-					$this->_debug("Scraper: PREG_BAD_UTF8_ERROR");
+					$this->_debug("PREG_BAD_UTF8_ERROR");
 					break;
 				case PREG_BAD_UTF8_OFFSET_ERROR:
-					$this->_debug("Scraper: PREG_BAD_UTF8_OFFSET_ERROR");
+					$this->_debug("PREG_BAD_UTF8_OFFSET_ERROR");
 					break;
 				default:
-					$this->_debug("Scraper: Unrecognized PREG error");
+					$this->_debug("Unrecognized PREG error");
 					break;
 			}
 		}
@@ -596,7 +602,7 @@ http://rog.ee/scraper
 	*/
 	private function _debug($message)
 	{	
-		return $message;
+		return $this->H->debug("Scraper: ".$message);
 	}
 
 
