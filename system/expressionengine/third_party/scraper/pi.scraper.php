@@ -177,51 +177,65 @@ class Scraper {
 			
 			$result_row = array();
 			
-			// We have to process the pair variables first, since they contain the same single variables as the root element
+			// --- {pair_var} --- //
+			// (We have to process the pair variables first, since they contain the same single variables as the root element.)
 			
-			// --- {children} --- //
-			
-			$available_vars = array(
-				'children',
-				'parent',
-				'first_child', 
-				'last_child',
-				'next_sibling',
-				'prev_sibling'
+			$pair_vars = array(
+				'children'
+				, 'parent'
+				, 'first_child'
+				, 'last_child'
+				, 'next_sibling'
+				, 'prev_sibling'
 			);
 			
-			foreach($available_vars as $var)
+			foreach($pair_vars as $var)
 			{
-				$var_name = $var;
-				$var      = $element->$var();
-											
-				if(is_null($var))
-				{
-					$result_row[$this->_prefix.$var] = array();
-				}
-				else
-				{					
-					if($var_name == 'children')
-					{
-						$children_items = array();
-						// We're going to provide count/index variables for the children elements, just to be nice...
-						$children_count = 1;
-						$children_index = 0;
-						$result_row[$this->_prefix.'children_total_results'] = count($var);
-						foreach($var as $e)
+				
+				switch ($var) {
+				
+					case "children":
+						
+						$children = $element->children();
+						
+						if (is_null($children))
 						{
-							$a = $this->_get_element_variables($e);
-							$a[$this->_prefix.'children_count'] = $children_count++;
-							$a[$this->_prefix.'children_index'] = $children_index++;
-							$children_items[] = $a;
+							$result_row[$this->_prefix.'children'] = array();
+							$result_row[$this->_prefix.'children_total_results'] = 0;
 						}
-						$result_row[$this->_prefix.'children'] = $children_items;
-					}
-					else
-					{
-						$result_row[$this->_prefix.$var] = array($this->_get_element_variables($var));
-					}
+						else
+						{
+							$children_items = array();
+							// We're going to provide count/index variables for the children elements, just to be nice...
+							$children_count = 1;
+							$children_index = 0;
+							$result_row[$this->_prefix.'children_total_results'] = count($children);
+							foreach($children as $e)
+							{
+								$a = $this->_get_element_variables($e);
+								$a[$this->_prefix.'children_count'] = $children_count++;
+								$a[$this->_prefix.'children_index'] = $children_index++;
+								$children_items[] = $a;
+							}
+							$result_row[$this->_prefix.'children'] = $children_items;
+						}
+						
+						break;
+				
+					case default:
+
+						$node = $element->$var();
+						if (is_null($node))
+						{
+							$result_row[$this->_prefix.$var] = array();
+						}
+						else
+						{
+							$result_row[$this->_prefix.$var] = array($this->_get_element_variables($node));
+						}
+				
 				}
+				
 			}
 			
 			// --- advanced tags (i.e. {find}) --- //
@@ -262,9 +276,10 @@ class Scraper {
 	*
 	*/
 	private function _get_element_variables($e)
-	{		
+	{
+
 		$a = array();
-		
+
 		if(isset($e->tag))
 		{
 			$a[$this->_prefix.'tag'] = $e->tag;
@@ -276,12 +291,13 @@ class Scraper {
 				$a[$this->_prefix.'attr:'.$name] = $val;
 			}
 		}
-		
+
 		return $a;
+
 	}
 
 
-	
+
 	/**
 	* ==============================================
 	* raw()
