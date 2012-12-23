@@ -8,7 +8,7 @@ a plugin for ExpressionEngine 2
 by Michael Rog
 
 Contact Michael with questions, feedback, suggestions, bugs, etc.
->> http://rog.ee/template_omnilogger
+>> http://rog.ee/scraper
 
 =====================================================
 */
@@ -181,86 +181,47 @@ class Scraper {
 			
 			// --- {children} --- //
 			
-			$children = $element->children();
-			if (is_null($children))
+			$available_vars = array(
+				'children',
+				'parent',
+				'first_child', 
+				'last_child',
+				'next_sibling',
+				'prev_sibling'
+			);
+			
+			foreach($available_vars as $var)
 			{
-				$result_row[$this->_prefix.'children'] = array();
-			}
-			else
-			{
-				$children_items = array();
-				// We're going to provide count/index variables for the children elements, just to be nice...
-				$children_count = 1;
-				$children_index = 0;
-				$result_row[$this->_prefix.'children_total_results'] = count($children);
-				foreach($children as $e)
+				$var_name = $var;
+				$var      = $element->$var();
+											
+				if(is_null($var))
 				{
-					$a = $this->_get_element_variables($e);
-					$a[$this->_prefix.'children_count'] = $children_count++;
-					$a[$this->_prefix.'children_index'] = $children_index++;
-					$children_items[] = $a;
+					$result_row[$this->_prefix.$var] = array();
 				}
-				$result_row[$this->_prefix.'children'] = $children_items;
-			}
-			
-			// --- {parent} --- //
-			
-			$parent = $element->parent();
-			if (is_null($parent))
-			{
-				$result_row[$this->_prefix.'parent'] = array();
-			}
-			else
-			{
-				$result_row[$this->_prefix.'parent'] = array($this->_get_element_variables($parent));
-			}
-			
-			// --- {first_child} --- //
-			
-			$first_child = $element->first_child();
-			if (is_null($first_child))
-			{
-				$result_row[$this->_prefix.'first_child'] = array();
-			}
-			else
-			{
-				$result_row[$this->_prefix.'first_child'] = array($this->_get_element_variables($first_child));
-			}
-			
-			// --- {last_child} --- //
-			
-			$last_child = $element->last_child();
-			if (is_null($last_child))
-			{
-				$result_row[$this->_prefix.'last_child'] = array();
-			}
-			else
-			{
-				$result_row[$this->_prefix.'last_child'] = array($this->_get_element_variables($last_child));
-			}
-			
-			// --- {next_sibling} --- //
-			
-			$next_sibling = $element->next_sibling();
-			if (is_null($next_sibling))
-			{
-				$result_row[$this->_prefix.'next_sibling'] = array();
-			}
-			else
-			{
-				$result_row[$this->_prefix.'next_sibling'] = array($this->_get_element_variables($next_sibling));
-			}
-			
-			// --- {prev_sibling} --- //
-			
-			$prev_sibling = $element->prev_sibling();
-			if (is_null($prev_sibling))
-			{
-				$result_row[$this->_prefix.'prev_sibling'] = array();
-			}
-			else
-			{
-				$result_row[$this->_prefix.'prev_sibling'] = array($this->_get_element_variables($prev_sibling));
+				else
+				{					
+					if($var_name == 'children')
+					{
+						$children_items = array();
+						// We're going to provide count/index variables for the children elements, just to be nice...
+						$children_count = 1;
+						$children_index = 0;
+						$result_row[$this->_prefix.'children_total_results'] = count($var);
+						foreach($var as $e)
+						{
+							$a = $this->_get_element_variables($e);
+							$a[$this->_prefix.'children_count'] = $children_count++;
+							$a[$this->_prefix.'children_index'] = $children_index++;
+							$children_items[] = $a;
+						}
+						$result_row[$this->_prefix.'children'] = $children_items;
+					}
+					else
+					{
+						$result_row[$this->_prefix.$var] = array($this->_get_element_variables($var));
+					}
+				}
 			}
 			
 			// --- advanced tags (i.e. {find}) --- //
@@ -303,14 +264,19 @@ class Scraper {
 	private function _get_element_variables($e)
 	{		
 		$a = array();
-		$a[$this->_prefix.'tag'] = $e->tag;
-		$a[$this->_prefix.'outertext'] = $e->outertext;
-		$a[$this->_prefix.'innertext'] = $e->innertext;
-		$a[$this->_prefix.'plaintext'] = $e->plaintext;
-		foreach($e->attr as $name => $val)
+		
+		if(isset($e->tag))
 		{
-			$a[$this->_prefix.'attr:'.$name] = $val;
+			$a[$this->_prefix.'tag'] = $e->tag;
+			$a[$this->_prefix.'outertext'] = $e->outertext;
+			$a[$this->_prefix.'innertext'] = $e->innertext;
+			$a[$this->_prefix.'plaintext'] = $e->plaintext;
+			foreach($e->attr as $name => $val)
+			{
+				$a[$this->_prefix.'attr:'.$name] = $val;
+			}
 		}
+		
 		return $a;
 	}
 
@@ -381,14 +347,14 @@ class Scraper {
 	{if children_total_results}
 	{children}
 		{tag}
-		(etc.)
+		[etc.]
 		{children_count} / {children_total_results}
 	{/children}
 	{/if}
 
 	{find selector="span" index=""}
 		{tag}
-		(etc.)
+		[etc.]
 		{found_count} / {found_total_results}
 	{/find}
 
