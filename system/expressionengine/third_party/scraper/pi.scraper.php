@@ -222,7 +222,7 @@ class Scraper {
 						
 						break;
 				
-					case default:
+					default:
 
 						$node = $element->$var();
 						if (is_null($node))
@@ -233,6 +233,8 @@ class Scraper {
 						{
 							$result_row[$this->_prefix.$var] = array($this->_get_element_variables($node));
 						}
+						
+						break;
 				
 				}
 				
