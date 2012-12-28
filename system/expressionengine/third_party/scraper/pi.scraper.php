@@ -99,7 +99,6 @@ class Scraper {
 		$this->_url = $this->H->param("url");
 		$this->_selector = $this->H->param("selector");
 		$this->_index = $this->H->param("index");
-		// TODO: $this->_limit = intval($this->H->param("limit",100));
 
 		// I support a few prefix param names, in case you're in the habit of using another addon's prefix param.
 		($this->_prefix = $this->H->param("variable_prefix")) || ($this->_prefix = $this->H->param("var_prefix")) || ($this->_prefix = $this->H->param("prefix")) || ($this->_prefix = "");
@@ -120,8 +119,6 @@ class Scraper {
 		}
 
 		// TODO: Clean up un-parsed attribute variables (maybe add a param to specify replacement value)
-		
-		// TODO: no_results conditional support
 		
 		// TODO: HTTP Authentication?
 		

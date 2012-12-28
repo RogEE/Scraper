@@ -94,7 +94,7 @@ class Rogee_helpers_model extends CI_Model {
 	
 		return $message;
 		
-	} // END param()
+	} // END debug()
 
 
 }
