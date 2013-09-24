@@ -60,16 +60,16 @@ class Scraper {
 	private $H;
 
 	public $return_data;
-	
+
 	private $_url;
 	private $_selector;
 	private $_index;
 	private $_limit;
-	
+
 	private $_placeholders = array();
 	private $_there_are_advanced_tags;
 	private $_tagdata;
-	
+
 	private $_prefix;
 	private $_debug;
     
@@ -84,26 +84,28 @@ class Scraper {
 	*/
 	public function __construct()
 	{
-	
+
 		// Get local EE instance
 		$this->EE =& get_instance();
-		
+
 		// Load the RogEE helpers model
 		$this->EE->load->model('rogee_helpers_model');
 		$this->H = $this->EE->rogee_helpers_model;
-		
+
 		// Instantiate the Simple HTML DOM library
 		$this->S = new simple_html_dom();
-		
+
 		// Get params
 		$this->_url = $this->H->param("url");
 		$this->_selector = $this->H->param("selector");
 		$this->_index = $this->H->param("index");
+		$this->_fetch_method = $this->H->param("fetch_method");
+		$this->_source_encoding = $this->H->param("source_encoding");
 
 		// I support a few prefix param names, in case you're in the habit of using another addon's prefix param.
 		($this->_prefix = $this->H->param("variable_prefix")) || ($this->_prefix = $this->H->param("var_prefix")) || ($this->_prefix = $this->H->param("prefix")) || ($this->_prefix = "");
 		$this->_debug = $this->H->param("debug", FALSE, TRUE);
-		
+
 		$this->_tagdata = $this->EE->TMPL->tagdata;
 		$this->_there_are_advanced_tags = $this->_parse_advanced_tags();
 
@@ -111,7 +113,7 @@ class Scraper {
 		$variables = $this->fetch_variables();
 		if (empty($variables))
 		{
-			$this->return_data = $this->EE->TMPL->no_results();	
+			$this->return_data = $this->EE->TMPL->no_results();
 		}
 		else
 		{
@@ -119,11 +121,13 @@ class Scraper {
 		}
 
 		// TODO: Clean up un-parsed attribute variables (maybe add a param to specify replacement value)
-		
+
 		// TODO: HTTP Authentication?
-		
+
 		// TODO: Implement limit param?
-	
+		
+		// TODO: Implement output encoding via Simple_html_dom callback?
+
 	}
 
 
@@ -139,44 +143,73 @@ class Scraper {
 	*
 	*/
 	public function fetch_variables()
-	{	
-		
+	{
+
 		if ($this->_url == FALSE)
 		{
 			$this->_debug("You must provide a URL parameter.");
 			return "";
 			// show_error("Scraper error: You must provide a URL parameter.");
 		}
-		
+
 		if ($this->_selector == FALSE)
 		{
 			$this->_debug("You must provide a selector parameter.");
 			return "";
 			// show_error("Scraper error: You must provide a selector parameter.");
 		}
-		
-		// Create the DOM object + Load HTML from our URL
+
+		// Create the DOM object
 		$dom = new simple_html_dom();
-		$dom->load_file($this->_url);				
+		
+		// Load HTML from our URL...
+		
+		if ($this->_fetch_method == "curl")
+		{
+		
+			$headers = array();
+			$headers[] = "Cache-Control:max-age=0";
+			$headers[] = "User-Agent:ExpressionEngine (Scraper)";
+			$curl = curl_init();
+			curl_setopt($curl, CURLOPT_URL, $this->_url);
+			curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+			curl_setopt($curl, CURLOPT_ENCODING, "gzip");
+			curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+			curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 1);
+			$doc = curl_exec($curl);
+			curl_close($curl);
+
+			if ($this->_source_encoding)
+			{
+				$doc = iconv($this->_source_encoding, "UTF-8", $doc);
+			}
+
+			$dom->load($doc);
+
+		}
+		else
+		{
+			$dom->load_file($this->_url);
+		}
 
 		$results = ( $this->_index === FALSE ? $dom->find($this->_selector) : array($dom->find($this->_selector, intval($this->_index))) );
-		
+
 		$variables = array();
 
 		// We keep track of our own count/total_results variables, so they can be prefixed.
 		$element_count = 1;
 		$element_total_results = count($results);
-		
+
 		// --- Process each found element --- //
-		
+
 		foreach($results as $element)
 		{
-			
+
 			$result_row = array();
-			
+
 			// --- {pair_var} --- //
 			// (We have to process the pair variables first, since they contain the same single variables as the root element.)
-			
+
 			$pair_vars = array(
 				'children'
 				, 'parent'
@@ -185,16 +218,16 @@ class Scraper {
 				, 'next_sibling'
 				, 'prev_sibling'
 			);
-			
+
 			foreach($pair_vars as $var)
 			{
-				
+	
 				switch ($var) {
-				
+	
 					case "children":
-						
+			
 						$children = $element->children();
-						
+			
 						if (is_null($children))
 						{
 							$result_row[$this->_prefix.'children'] = array();
@@ -216,9 +249,9 @@ class Scraper {
 							}
 							$result_row[$this->_prefix.'children'] = $children_items;
 						}
-						
+			
 						break;
-				
+	
 					default:
 
 						$node = $element->$var();
@@ -230,21 +263,21 @@ class Scraper {
 						{
 							$result_row[$this->_prefix.$var] = array($this->_get_element_variables($node));
 						}
-						
+			
 						break;
-				
+	
 				}
-				
+	
 			}
-			
+
 			// --- advanced tags (i.e. {find}) --- //
-			
+
 			$result_row = array_merge($result_row, $this->_process_advanced_variables($element));
 
 			// --- primary element --- //
 
 			$result_row = array_merge($result_row, $this->_get_element_variables($element));
-			
+
 			$result_row[$this->_prefix.'count'] = $element_count++;
 			$result_row[$this->_prefix.'total_results'] = $element_total_results;
 
@@ -255,12 +288,12 @@ class Scraper {
 		// clean up memory
 		$dom->clear();
 		unset($dom);
-		
+
 		// return Master Variables Array
 		return $variables;
-			
+
 	}
-	
+
 
 	/**
 	* ==============================================
@@ -309,10 +342,10 @@ class Scraper {
 	*
 	*/
 	public function raw()
-	{	
-	
+	{
+
 		$variables = $this->fetch_variables();
-		
+
 		return "<h1>Selecting ".
 			$this->_selector.
 			($this->_index === FALSE ? "" : " [" . $this->_index . "] " ).
@@ -330,10 +363,10 @@ class Scraper {
 			print_r($this->_tagdata, TRUE).
 			"</pre>"
 		;
-		
+
 	}
-	
-	
+
+
 	/**
 	* ==============================================
 	* usage()
@@ -346,7 +379,7 @@ class Scraper {
 	*/
 	public static function usage()
 	{
-	
+
 		ob_start();
 ?>
 
@@ -358,7 +391,7 @@ class Scraper {
 	{plaintext}
 	{attr:id}
 	{count} / {total_results}
-	
+
 	{if children_total_results}
 	{children}
 		{tag}
@@ -388,7 +421,7 @@ http://rog.ee/scraper
 		$buffer = ob_get_contents();
 		ob_end_clean();
 		return $buffer;
-		
+
 	}
 
 	/**
@@ -405,22 +438,22 @@ http://rog.ee/scraper
 	*/
 	private function _parse_advanced_tags()
 	{
-		
+
 		$there_are_advanced_tags = FALSE;
 
 		foreach ($this->EE->TMPL->var_pair as $tag => $tag_details)
 		{
-			
+
 			// --- parse {find} tags --- //
 			$type = str_replace($this->_prefix, '', strtok($tag, ' '));
-			
+
 			if ($type == 'find')
 			{
-			
+
 				$there_are_advanced_tags = TRUE;
-				
+	
 				$closing_tag = "/".$this->_prefix.$type;
-				
+	
 				$this_tag = array();
 				$this_tag = array_merge
 				(
@@ -432,9 +465,9 @@ http://rog.ee/scraper
 					),
 					$tag_details
 				);
-				
+		
 				$ph = $this->_make_placeholder($this_tag);
-				
+		
 				$pattern = '/'.LD.$tag.RD.'(.*?)'.LD.'\\'.$closing_tag.RD.'/s';
 				$tagdata = preg_replace($pattern, '{'.$ph.'}$1{/'.$ph.'}', $this->_tagdata);
 				// preg_replace() returns NULL on PCRE error
@@ -446,9 +479,9 @@ http://rog.ee/scraper
 				{
 					$this->_tagdata = $tagdata;
 				}
-				
+		
 			}
-			
+	
 		}
 
 		return $there_are_advanced_tags;
@@ -474,7 +507,7 @@ http://rog.ee/scraper
 		$this->_placeholders[$ph] = $item;
 		return $ph;
 	}
-	
+
 	/**
 	* ==============================================
 	* _pcre_error()
@@ -485,7 +518,7 @@ http://rog.ee/scraper
 	* @access private
 	* @return void
 	*
-	*/	
+	*/
 	private function _pcre_error()
 	{
 		// either an unsuccessful match, or a PCRE error occurred
@@ -536,26 +569,27 @@ http://rog.ee/scraper
 	*
 	*/
 	private function _process_advanced_variables($origin_element)
-	{	
-	
+	{
+
 		$advanced_variables = array();
 
 		if ($this->_there_are_advanced_tags)
 		{
 			foreach ($this->_placeholders as $ph => $tag_details)
 			{
-	
+
 				// --- {find} tags --- ///
-			
+	
 				if ($tag_details['type'] == 'find')
 				{
-					$s = $tag_details['selector'];
-					$i = $tag_details['index'];
-   
-					if (!empty($s))
-					{
 					
-						if (!is_null($i))
+					if (array_key_exists("selector", $tag_details)) { $s = $tag_details['selector']; }
+					if (array_key_exists("index", $tag_details)) { $i = $tag_details['index']; }
+					
+					if (!isset($s))
+					{
+			
+						if (!isset($i))
 						{
 							$found_elements = array($origin_element->find($s, intval($i)));
 						}
@@ -585,21 +619,21 @@ http://rog.ee/scraper
 							}
 							$advanced_variables[$ph] = $found_elements_tags;
 						}
-						
+				
 					}
 					else
 					{
 						$advanced_variables[$ph] = array();
 					}
-			
+	
 				}
 
 			}
 
 		}
-		
+
 		return $advanced_variables;
-		
+
 	}
 
 
@@ -617,7 +651,7 @@ http://rog.ee/scraper
 	*
 	*/
 	private function _debug($message)
-	{	
+	{
 		return $this->H->debug("Scraper: ".$message);
 	}
 

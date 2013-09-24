@@ -17,7 +17,7 @@ Contact Michael with questions, feedback, suggestions, bugs, etc.
 if (!defined('ROGEE_SCRAPER_NAME'))
 {
 	define('ROGEE_SCRAPER_NAME', 'Scraper [RogEE]');
-	define('ROGEE_SCRAPER_VERSION',  '1.0.0');
+	define('ROGEE_SCRAPER_VERSION',  '1.1.0');
 	define('ROGEE_SCRAPER_AUTHOR', 'Michael Rog');
 	define('ROGEE_SCRAPER_AUTHOR_URL', 'http://rog.ee');
 	define('ROGEE_SCRAPER_DESC', 'Easily scrape HTML content from external pages and parse its elements into your EE template.');
