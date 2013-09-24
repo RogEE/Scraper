@@ -99,6 +99,8 @@ class Scraper {
 		$this->_url = $this->H->param("url");
 		$this->_selector = $this->H->param("selector");
 		$this->_index = $this->H->param("index");
+		$this->_fetch_method = $this->H->param("fetch_method");
+		$this->_source_encoding = $this->H->param("source_encoding");
 
 		// I support a few prefix param names, in case you're in the habit of using another addon's prefix param.
 		($this->_prefix = $this->H->param("variable_prefix")) || ($this->_prefix = $this->H->param("var_prefix")) || ($this->_prefix = $this->H->param("prefix")) || ($this->_prefix = "");
@@ -123,6 +125,8 @@ class Scraper {
 		// TODO: HTTP Authentication?
 
 		// TODO: Implement limit param?
+		
+		// TODO: Implement output encoding via Simple_html_dom callback?
 
 	}
 
@@ -155,9 +159,38 @@ class Scraper {
 			// show_error("Scraper error: You must provide a selector parameter.");
 		}
 
-		// Create the DOM object + Load HTML from our URL
+		// Create the DOM object
 		$dom = new simple_html_dom();
-		$dom->load_file($this->_url);	
+		
+		// Load HTML from our URL...
+		
+		if ($this->_fetch_method == "curl")
+		{
+		
+			$headers = array();
+			$headers[] = "Cache-Control:max-age=0";
+			$headers[] = "User-Agent:ExpressionEngine (Scraper)";
+			$curl = curl_init();
+			curl_setopt($curl, CURLOPT_URL, $this->_url);
+			curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+			curl_setopt($curl, CURLOPT_ENCODING, "gzip");
+			curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+			curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 1);
+			$doc = curl_exec($curl);
+			curl_close($curl);
+
+			if ($this->_source_encoding)
+			{
+				$doc = iconv($this->_source_encoding, "UTF-8", $doc);
+			}
+
+			$dom->load($doc);
+
+		}
+		else
+		{
+			$dom->load_file($this->_url);
+		}
 
 		$results = ( $this->_index === FALSE ? $dom->find($this->_selector) : array($dom->find($this->_selector, intval($this->_index))) );
 
@@ -549,13 +582,14 @@ http://rog.ee/scraper
 	
 				if ($tag_details['type'] == 'find')
 				{
-					$s = $tag_details['selector'];
-					$i = $tag_details['index'];
-   
-					if (!empty($s))
+					
+					if (array_key_exists("selector", $tag_details)) { $s = $tag_details['selector']; }
+					if (array_key_exists("index", $tag_details)) { $i = $tag_details['index']; }
+					
+					if (!isset($s))
 					{
 			
-						if (!is_null($i))
+						if (!isset($i))
 						{
 							$found_elements = array($origin_element->find($s, intval($i)));
 						}
