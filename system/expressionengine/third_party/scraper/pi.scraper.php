@@ -586,12 +586,13 @@ http://rog.ee/scraper
 					if (array_key_exists("selector", $tag_details)) { $s = $tag_details['selector']; }
 					if (array_key_exists("index", $tag_details)) { $i = $tag_details['index']; }
 					
-					if (!isset($s))
+					if (isset($s))
 					{
 			
-						if (!isset($i))
+						if (isset($i))
 						{
 							$found_elements = array($origin_element->find($s, intval($i)));
+							// TODO: fix bug where non-existent index returns parent
 						}
 						else
 						{
@@ -600,7 +601,7 @@ http://rog.ee/scraper
 
 						if (is_null($found_elements))
 						{
-							return array();
+							$advanced_variables[$ph] = array();
 						}
 						else
 						{
